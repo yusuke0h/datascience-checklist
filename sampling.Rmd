@@ -1,0 +1,127 @@
+---
+output:
+  knitrBootstrap::bootstrap_document:
+    title: "sampleing"
+    theme: Flatly
+    highlight: sunburst
+    theme.chooser: TRUE
+    highlight.chooser: TRUE
+---
+
+```{r setup, include=FALSE}
+library("ggplot2")
+library("dplyr")
+knitr::opts_chunk$set(echo = TRUE)
+setwd("~/Projects/DataSicnce/sampling/data")
+```
+
+# DataSicnce No85 Data visualization サンプリングやアンサンブル平均によってデータ量を減らして可視化できる
+
+
+# 背景
+大量のデータを扱う場合、そのまま可視化を行うと処理に時間がかかることがある。そこでデータ分析の初期段階では大量のデータをサンプリングや平均により、データ量を減らすことで、探索的な可視化・分析が可能となる。その中でデータのおおよその概要を掴むことが重要である。
+# 全データをプロットすると見づらいのでサンプリング・平均をとることもあるのか？見づらい場合ってグラフ構造や対応分析をプロットする場合を思いつくけれども、それは出現頻度が上位N件とかの枝刈りが多く、サンプリングではない気がする。。
+
+# 項目の意味
+## サンプリング
+サンプリングとは任意のデータセット（母集団）から標本を抜き出すこと。  
+無作為に抽出したり、層化して抽出する方法などがある。
+
+## アンサンブル平均・時間平均
+アンサンブル平均とは、同じ条件で測定されたいくつかのグループの測定値の平均をとること。時間平均とは、特定のグループにおいて測定値の時間的な平均をとること。
+```{r}
+# A君、B君、C君の1,2,3学期の点数
+df <- data.frame(
+  A=as.integer(runif(3, min = 0, max = 100)),
+  B=as.integer(runif(3, min = 0, max = 100)),
+  C=as.integer(runif(3, min = 0, max = 100))
+)
+head(df)
+# アンサンブル平均 1学期のアンサンブル平均の点数
+mean(as.matrix(df[1,]))
+# 時間平均 A君の時間平均の点数
+mean(df$A)
+```
+
+# 問題
+
+- 実際のデータを用いてサンプリング・アンサンブル平均の可視化を行ってみる
+    - 下記の例
+    - もっと簡単でも良い？
+- サンプリングを行う際の注意点を述べよ
+    - データを減らしすぎると母集団のとは違う性質になる可能性あり # どの程度が適切なのだろうか
+- ブートストラップ法の利点を述べよ
+- アンサンブル平均と時間平均の違いを述べよ
+
+
+# データの読み込み
+今回は気象庁の気温データを利用した。  
+場所：函館、東京、熊本
+期間：2015年8月6日から2016年8月6日まで  
+データ粒度：時別値  
+```{r, warning=FALSE}
+tokyo.hours <- read.csv("~/Projects/DataSicnce/sampling/data/tokyo.hours.csv", quote="")
+# datatimeがカテゴリ型になっているのでPOSIXct（datetime）型に変換
+tokyo.hours$datetime <- as.POSIXct(tokyo.hours$datetime, "%y/%m/%d %h:%m:%s")
+tokyo.hours$location <- "tokyo"
+
+hakodate.hours <- read.csv("~/Projects/DataSicnce/sampling/data/hakodate.hours.csv", quote="")
+hakodate.hours$datetime <- as.POSIXct(hakodate.hours$datetime, "%y/%m/%d %h:%m:%s")
+hakodate.hours$location <- "hakodate"
+
+kumamoto.hours <- read.csv("~/Projects/DataSicnce/sampling/data/kumamoto.hours.csv", quote="")
+kumamoto.hours$datetime <- as.POSIXct(kumamoto.hours$datetime, "%y/%m/%d %h:%m:%s")
+kumamoto.hours$location <- "kumamoto"
+
+japan.hours <- union(union(tokyo.hours, hakodate.hours), kumamoto.hours)
+head(japan.hours)
+summary(japan.hours)
+```
+
+# そのまま可視化
+```{r, warning=FALSE, fig.width=10, fig.height=10}
+# 全データ
+ggplot(japan.hours, aes(x=datetime, y=temperature)) + geom_point() + geom_smooth(span=0.3)
+# 地点別
+ggplot(japan.hours, aes(x=datetime, y=temperature, color=location)) + geom_point() + geom_smooth(span=0.3, color="black") + facet_wrap(~location)
+```
+そのまま散布図を書くと一日あたり24個（1時間ごと）のデータがある。データ分析の初期段階からすべてのデータを使うと処理に時間がかかることが多い（1回実行するのに1時間もかかる実験は探索的にデータを見ることができない）。そこで①サンプリングをしてデータを減らす、②粒度を時間単位ででなく一日単位にする、の2点をやってみよう。  
+
+
+# サンプリングによるデータ削減
+```{r, warning=FALSE, fig.width=10, fig.height=10}
+# sample_fracにより10%のデータ量にする
+japan.hours.10par <- sample_frac(tbl = japan.hours, size = 0.1)
+# 全データ
+ggplot(japan.hours.10par, aes(x=datetime, y=temperature)) + geom_point() + geom_smooth(span=0.3)
+# 地点別
+ggplot(japan.hours.10par, aes(x=datetime, y=temperature, color=location)) + geom_point() + geom_smooth(span=0.3, color="black") + facet_wrap(~location)
+```
+全データからランダムに10%にデータを削減した。この場合でもおおよそ元データと同様の傾向を示しており、処理も軽く、探索的な分析フェーズにはこちらを使うとさくさくできる。
+
+# アンサンブル平均によるデータの要約
+```{r, warning=FALSE, fig.width=10, fig.height=10}
+japan.hours$date <- as.Date(format(japan.hours$datetime, "%Y/%m/%d"))
+japan.summarize.hours <- 
+  dplyr::group_by(japan.hours, datetime) %>%
+  dplyr::summarise(temperature=mean(temperature))
+# 全データ 
+ggplot(japan.summarize.hours, aes(x=datetime, y=temperature)) + geom_point() + geom_smooth(span=0.3)
+```
+
+# 時間平均によるデータの要約
+```{r, warning=FALSE, fig.width=10, fig.height=10}
+japan.hours$date <- as.Date(format(japan.hours$datetime, "%Y/%m/%d"))
+japan.days <- 
+  dplyr::group_by(japan.hours, location, date) %>%
+  dplyr::summarise(temperature=mean(temperature))
+# 全データ
+ggplot(japan.days, aes(x=date, y=temperature)) + geom_point() + geom_smooth(span=0.3)
+# 地点別
+ggplot(japan.days, aes(x=date, y=temperature, color=location)) + geom_point() + geom_smooth(span=0.3, color="black") + facet_wrap(~location)
+```
+
+# 参考文献
+https://ja.wikipedia.org/wiki/%E6%A8%99%E6%9C%AC%E8%AA%BF%E6%9F%BB
+http://park.itc.u-tokyo.ac.jp/tkdlab/member/ohbuchi/labo/average.htm
+https://oku.edu.mie-u.ac.jp/~okumura/stat/bootstrap.html

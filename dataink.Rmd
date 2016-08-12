@@ -1,0 +1,45 @@
+---
+output:
+  knitrBootstrap::bootstrap_document:
+    title: "dataink"
+    theme: Flatly
+    highlight: sunburst
+    theme.chooser: TRUE
+    highlight.chooser: TRUE
+---
+
+# DataSicnce No93 Data visualization 適切な情報濃度(データインク比、データ濃度の概念)を理解し判断できる
+
+# 背景
+データの可視化を行う際に、可視化ツールの様々な機能を使ってついつい豪華な図を作ってしまうことがある。豪華な図は一見それっぽく見えるかもしれないが、いろいろなことが書いてあって結局何が言いたいのかわからないことが多い。そこで、可視化によってあるメッセージを伝えたいときには、それを伝える最小の描写で伝えることが望ましいと言われている。  
+豪華な図の例  
+![Low Data-Ink Ratio](http://www.infovis-wiki.net/images/2/2e/Dir1.png "Low")  
+シンプルな図の例  
+![High Data-Ink Ratio](http://www.infovis-wiki.net/images/1/1b/Dir2.png "High")
+
+# 項目の意味
+データインク比とは図の良し悪しを図る指標のひとつで、次の式で表される。  
+$$
+データインク比=\frac{データインク量}{総インク量}
+$$
+データインク比は高いほうがよく、低いと見づらい図となることが多い。  
+# データ濃度は調べたけれども情報が見当たらなかった。誰か知っている人がいれば教えてください。
+
+# 問題
+
+- データインク比の式を記述せよ
+- データインク比が低いとどういった問題があるか述べよ
+- 次の図のうち、データインク比が高いものを選べ
+
+# 参考文献
+Data-Ink Ratio - InfoVis:Wiki  
+http://www.infovis-wiki.net/index.php/Data-Ink_Ratio  
+  
+プログラマーが効果的な可視化を作成する（後編 Part 1）: 基本原則 - Qiita
+http://qiita.com/keiono/items/51a5572db2ee06875e31  
+  
+Excelのダメなグラフでウソをつく法｜Colorless Green Ideas  
+http://id.fnshr.info/2016/03/28/excel-bad-charts/  
+  
+絶対に描いてはいけないグラフ入りスライド24枚  
+http://www.slideshare.net/itoyan110/24-44156981  
